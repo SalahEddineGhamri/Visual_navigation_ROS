@@ -1,0 +1,46 @@
+/***********************************************************************/
+/*                            Map_Gui.hpp                              */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                         */
+/* -LAST_MODIFICATION: 12/2017                                         */
+/***********************************************************************/
+#ifndef MAP_GUI_H
+#define MAP_GUI_H
+
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "visualization_msgs/Marker.h"
+#include "Target.hpp"
+#include <angles/angles.h>
+
+# define SCALE_X_LINE 0.01
+# define SCALE_Y_LINE 0.01
+# define SCALE_Z_LINE 0.0
+
+using namespace std;
+
+class Model_robot
+{
+
+	private:
+		ros::Publisher vis_pub ;
+		ros::NodeHandle nh_;
+
+
+	public:
+
+		//Constructor
+		Model_robot(ros::NodeHandle nh);
+		Map_Gui(){};
+
+		//Destructor
+		~Map_Gui();
+
+		//Operator
+		int add_model (int id, vector<float> pos, vector<float> orien);
+
+};
+
+
+#endif //MAP_GUI_H

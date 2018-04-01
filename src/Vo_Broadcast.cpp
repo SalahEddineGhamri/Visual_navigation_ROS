@@ -1,0 +1,134 @@
+/***********************************************************************/
+/*                        Vo_Broadcast.cpp                             */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                          */
+/* -LAST_MODIFICATION: 03/2018                                         */
+/***********************************************************************/
+
+# include "Vo_Broadcast.hpp"
+
+
+
+
+Vo_Broadcast::Vo_Broadcast(ros::NodeHandle nh)
+{
+    Set_Marker s(nh);
+	ar_list = s.init_ARcode_pose();
+	ar_subscriber_ = nh_.subscribe("ar_pose_marker", 1, &Vo_Broadcast::arCallback, this);
+  	odom_subscriber_ = nh_.subscribe("odom", 1, &Vo_Broadcast::odomCallback, this);
+  	vo_publisher_ = nh_.advertise<nav_msgs::Odometry>("/vo", 1);
+  	robot_pose_.resize(3);
+    robot_orien_.resize(4);
+    ar_pose_.resize(3);
+    ar_orien_.resize(4);
+    ar_id = -1;
+}
+
+	// Callback
+	void Vo_Broadcast::odomCallback(const nav_msgs::Odometry &message)
+	{
+		odom_message = message;
+		
+		 tf::Quaternion qr(message.pose.pose.orientation.x, message.pose.pose.orientation.y, message.pose.pose.orientation.z, message.pose.pose.orientation.w);
+		 tf::Matrix3x3 m(qr);
+		 double rollr, pitchr, yawr;
+		 m.getRPY(rollr,pitchr,yawr);
+		 
+		 robot_orien_[0]=rollr;
+		 robot_orien_[1]=pitchr;
+		 robot_orien_[2]=yawr;
+
+		
+	}
+
+    void Vo_Broadcast::arCallback(ar_track_alvar_msgs::AlvarMarkers req)
+    {
+		  if (!req.markers.empty()) 
+		  {
+		    ar_pose_[0] = req.markers[0].pose.pose.position.x;
+		    ar_pose_[1] = req.markers[0].pose.pose.position.y;
+		    ar_pose_[2] = req.markers[0].pose.pose.position.z;
+		    
+		   
+		    
+		    tf::Quaternion q(req.markers[0].pose.pose.orientation.x,req.markers[0].pose.pose.orientation.y,req.markers[0].pose.pose.orientation.z,req.markers[0].pose.pose.orientation.w);
+			tf::Matrix3x3 m(q);
+			double roll, pitch, yaw;
+			m.getRPY(roll,pitch,yaw);
+			ar_orien_[0]= roll;
+			ar_orien_[1]= pitch;
+			ar_orien_[2]= yaw;
+            
+            if(ar_pose_[0]>0.1 || ar_pose_[0]<-0.1)
+		    {
+		        ar_id=-1;
+		    }
+		    else
+		    {
+		        ar_id = req.markers[0].id;
+		    }
+		    
+		  }
+		  else
+		  {
+		    ar_id = -1;
+		  }
+    }
+
+    // Operators
+    tf::Quaternion Vo_Broadcast::calculateAngle(float roll, float pitch, float yaw)
+    {
+    	tf::Quaternion q;
+    	q.setEuler(roll,pitch,yaw);
+    	return q;
+    }
+
+
+    geometry_msgs::Quaternion Vo_Broadcast::transformAngle()
+    {
+    	vector<float> orien = ar_list[ar_id].get_Orientation();
+    	float th = angles::normalize_angle(orien[2]-1.570 + ar_orien_[2]);
+    	return tf::createQuaternionMsgFromYaw(th);
+    }
+
+    void Vo_Broadcast::transform_rep()
+    {
+    	vector<float> orien_ar = ar_list[ar_id].get_Orientation();
+    	vector<float> pose_ar = ar_list[ar_id].get_Position();
+    	
+    	float gamma = angles::normalize_angle(orien_ar[2] - ar_orien_[0]);
+
+    	odom_message.pose.pose.position.x += (  pose_ar[0])-cos(gamma)*ar_pose_[2];
+    	odom_message.pose.pose.position.y += (  pose_ar[1])-sin(gamma)*ar_pose_[2];
+
+    	geometry_msgs::Quaternion qua = Vo_Broadcast::transformAngle();
+    	odom_message.pose.pose.orientation = qua;
+
+
+    	vo_publisher_.publish(odom_message);
+    }
+
+int Vo_Broadcast::get_Ar_id()
+{
+    return ar_id;
+}
+
+
+int main(int argc, char **argv) 
+{
+	ros::init(argc,argv,"Vo_broadcast");
+	ros::NodeHandle nh;
+	Vo_Broadcast vo_broad(nh);
+
+	while(ros::ok())
+	{
+		ros::spinOnce();
+		if(vo_broad.get_Ar_id() > -1)
+		{
+			vo_broad.transform_rep();
+		}
+		ros::Duration(0.6).sleep();
+	}
+	return 0;
+}

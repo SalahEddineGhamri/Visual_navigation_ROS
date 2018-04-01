@@ -1,0 +1,78 @@
+# include "Follow_Path.hpp"
+# include "Target.hpp"
+
+# include "Smooth_Path.cpp"
+
+
+# include "ros/ros.h"
+
+
+using namespace std;
+
+
+
+
+
+int main(int argc, char **argv)
+{
+    ros::init(argc,argv,"Map_Main");
+    ros::NodeHandle nh;
+    Follow_Path followPath(nh);
+
+    vector<float> p1;
+	    p1.push_back(0.0f);
+	    p1.push_back(0.0f);
+	    p1.push_back(0.0f);
+
+    vector<float> p2;
+	    p2.push_back(1.0f);
+	    p2.push_back(1.0f);
+	    p2.push_back(0.0f);
+
+    vector<float> p3;
+	    p3.push_back(1.0f);
+	    p3.push_back(2.0f);
+	    p3.push_back(0.0f);
+
+    vector<float> p4;
+	    p4.push_back(3.0f);
+	    p4.push_back(3.68f);
+	    p4.push_back(0.0f);
+
+    vector<float> p5;
+	    p5.push_back(4.88f);
+	    p5.push_back(4.28f);
+	    p5.push_back(0.0f);
+
+    vector<float> ori;
+	    ori.push_back(0.0f);
+	    ori.push_back(0.0f);
+	    ori.push_back(0.0f);
+	    ori.push_back(1.0f);
+
+    Target t1(1,0,p1,ori);
+    Target t2(2,0,p2,ori);
+    Target t3(3,0,p3,ori);
+    Target t4(4,0,p4,ori);
+    Target t5(5,0,p5,ori);
+
+    ROS_INFO("... PATH ...");
+    vector<Target> path;
+    path.push_back(t1);
+    path.push_back(t2);
+    path.push_back(t3);
+    path.push_back(t4);
+    path.push_back(t5);
+
+    ROS_INFO("... BEZIER ...");
+    vector<vector<float > > smooth_path = Generator_smooth_Path(path,20);
+
+    ROS_INFO("... MOVING ...");
+				    for(unsigned int i=0;i<smooth_path.size();i++)
+				    {
+					    ROS_INFO("... %d/%d ...",i,smooth_path.size()-1);
+					    followPath.goToPoint(smooth_path[i]);
+				    }
+    ROS_INFO("... END ...");	
+    return(0);
+}

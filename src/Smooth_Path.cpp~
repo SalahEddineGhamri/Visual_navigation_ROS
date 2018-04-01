@@ -1,0 +1,204 @@
+/***********************************************************************/
+/*                             Target.cpp                              */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                         */
+/* -LAST_MODIFICATION: 01/2018                                         */
+/***********************************************************************/
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "visualization_msgs/Marker.h"
+#include "math.h"
+# include "Target.hpp"
+
+
+using namespace std;
+
+static vector<vector<float> > bezier_cubic(vector<float> p0, vector<float> p1, vector<float> p2, vector<float> p3,int nb_Points)
+{
+    vector<vector<float> > vector_bezier;
+    vector<float> vector_time;
+    float times = (float)1/(float)nb_Points;
+    float t;
+	vector<float> point;
+	point.resize(3);
+    
+    // determination of time
+    vector_time.push_back(0.0f);
+    for(int i=0; i<nb_Points-1 ; ++i)
+    {
+        vector_time.push_back(vector_time[i]+times);  
+    }
+    vector_time.push_back(1.0f);
+    
+    // determination of points
+    for(int j=0; j<vector_time.size(); ++j)
+    {
+    	t = vector_time[j];
+    	float t1=(1.0f-t);
+    	float t2=t1*(1.0f-t);
+    	float t3=t2*(1.0f-t);
+        
+        point[0]=(t3*p0[0])+(3.0f*t*t2*p1[0])+(3.0f*t*t*t1*p2[0])+(t*t*t*p3[0]);
+        point[1]=(t3*p0[1])+(3.0f*t*t2*p1[1])+(3.0f*t*t*t1*p2[1])+(t*t*t*p3[1]);
+        point[2]=(t3*p0[2])+(3.0f*t*t2*p1[2])+(3.0f*t*t*t1*p2[2])+(t*t*t*p3[2]);       
+        vector_bezier.push_back(point);  
+    } 
+    
+    return vector_bezier;
+}
+
+static vector<float> Lerp(vector<float> a, vector<float> b, float t)
+{
+	vector<float> res;
+	res.resize(3);
+	for (unsigned int i = 0; i<3 ; i++)
+		res[i] = a[i] +(b[i] - a[i]) *t;
+	return res;
+}
+
+static vector<float> QuadraticCurve(vector<float> a, vector<float> b, vector<float> c, float t)
+{
+	vector<float> p0 = Lerp(a,b,t);
+	vector<float> p1 = Lerp(b,c,t);
+	return Lerp(p0,p1,t);
+}
+
+static vector<float> CubicCurve(vector<float> a, vector<float> b, vector<float> c, vector<float> d, float t)
+{
+	vector<float> p0 = QuadraticCurve(a,b,c,t);
+	vector<float> p1 = QuadraticCurve(b,c,d,t);
+	return Lerp(p0,p1,t);
+}
+
+static vector<vector<float> > Double_Handle(vector<float> a, vector<float> b, vector<float> c)
+{
+	vector<vector<float> > res;
+	vector<float> handle;
+	handle.resize(3);
+
+	float diff_x=(a[0]-c[0]);
+	float diff_y=(a[1]-c[1]);
+	float diff_z=(a[2]-c[2]);
+	float dist = sqrt(diff_x*diff_x + diff_y*diff_y + diff_z*diff_z);
+	float dir_x = diff_x/dist;
+	float dir_y = diff_y/dist;
+	float dir_z = diff_z/dist;
+
+	diff_x=(a[0]-b[0]);
+	diff_y=(a[1]-b[1]);
+	diff_z=(a[2]-b[2]);
+	float distAB= sqrt(diff_x*diff_x + diff_y*diff_y + diff_z*diff_z)/5.0f;
+	
+	diff_x=(b[0]-c[0]);
+	diff_y=(b[1]-c[1]);
+	diff_z=(b[2]-c[2]);
+	float distBC = sqrt(diff_x*diff_x + diff_y*diff_y + diff_z*diff_z)/5.0f;
+
+
+	handle[0] = b[0] + distAB * (dir_x);
+	handle[1] = b[1] + distAB * (dir_y);
+	handle[2] = b[2] + distAB * (dir_z);
+
+	res.push_back(handle);
+	res.push_back(b);
+
+	handle[0] = b[0] + distBC * (-dir_x);
+	handle[1] = b[1] + distBC * (-dir_y);
+	handle[2] = b[2] + distBC * (-dir_z);
+	res.push_back(handle);
+
+	return res;
+}
+
+static vector<vector<float> > Handle(vector<float> a, vector<float> b)
+{
+	vector<vector<float> > res;
+	vector<float> handle;
+	handle.resize(3);
+	float diff_x=(a[0]-b[0]);
+	float diff_y=(a[1]-b[1]);
+	float diff_z=(a[2]-b[2]);
+	float dist = sqrt(diff_x*diff_x + diff_y*diff_y + diff_z*diff_z);
+	float dir_x = diff_x/dist;
+	float dir_y = diff_y/dist;
+	float dir_z = diff_z/dist;
+
+
+	handle[0] = a[0] + dist/3.0f * (-dir_x);
+	handle[1] = a[1] + dist/3.0f * (-dir_y);
+	handle[2] = a[2] + dist/3.0f * (-dir_z);
+
+
+	res.push_back(a);
+	res.push_back(handle);
+
+	return res;
+}
+
+
+static vector<vector<float> > Make_List_Handles(vector<Target> list)
+{
+
+	vector<vector<float> > list_handles;
+	vector<vector<float> > handles;
+
+
+	handles = Handle(list[0].get_Position(),list[1].get_Position());
+	list_handles.push_back(handles[0]);
+	list_handles.push_back(handles[1]);
+
+	for (unsigned int i = 1; i< list.size()-1; ++i)
+	{
+		handles.clear();
+		handles = Double_Handle(list[i-1].get_Position(),list[i].get_Position(),list[i+1].get_Position());
+		list_handles.push_back(handles[0]);
+		list_handles.push_back(handles[1]);
+		list_handles.push_back(handles[2]);
+	}
+	handles.clear();
+	handles = Handle(list[list.size()-1].get_Position(),list[list.size()-2].get_Position());
+	list_handles.push_back(handles[1]);
+	list_handles.push_back(handles[0]);
+
+	return list_handles;
+}
+
+static vector<float> genrator_Vector_Time(int nb_Points)
+{
+	float times = (float)1.0f/((float)nb_Points);
+	vector<float> vector_time;
+
+	// determination of  vector time
+    vector_time.push_back(0.0f);
+    for(int i=0; i<nb_Points-2 ; ++i)
+    {
+        vector_time.push_back(vector_time[i]+times);  
+    }
+    vector_time.push_back(1.0f);
+
+    return vector_time;
+}
+
+static vector<vector<float> > Generator_smooth_Path(vector<Target> list, int nb_Points)
+{
+	vector<vector<float> > res;
+	res.resize(0);
+	vector<vector<float> > list_position = Make_List_Handles(list);
+
+	vector<float> vector_time = genrator_Vector_Time (nb_Points);
+
+	
+
+	vector<vector<float> > pos;
+
+	for (unsigned int i = 0; i< list_position.size()-3; i+=3)
+	{
+			pos.clear();
+			pos = bezier_cubic(list_position[i], list_position[i+1], list_position[i+2], list_position[i+3], nb_Points);
+			for(int j =0;j<pos.size();++j)
+				res.push_back(pos[j]);
+	}
+	return res;
+
+}

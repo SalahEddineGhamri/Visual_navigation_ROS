@@ -1,0 +1,65 @@
+/***********************************************************************/
+/*                             Goal.hpp                                */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  RUBIO Luc                                                 */
+/* -LAST_MODIFICATION: 03/2018                                         */
+/***********************************************************************/
+#ifndef GOAL_H
+#define GOAL_H
+
+#include "ros/ros.h"
+#include "geometry_msgs/PoseStamped.h"
+#include "Target.hpp"
+
+#include <vector>
+#include <fstream>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+using namespace std;
+
+class Goal
+{
+	private:
+		ros::NodeHandle nh_;
+		ros::Subscriber sub_;
+		ros::Subscriber subOdom_;
+
+		geometry_msgs::PoseStamped Pose_Goal_;
+		
+	
+		int type_; 
+		int id_;								
+		vector<float> orientation_;
+		bool msg_ok;
+
+	public:
+
+		//Constructor
+		Goal(ros::NodeHandle nh);
+//int id,int type, vector<float> pos, vector<float> orien);
+		Goal(){};
+
+		//Destructor
+		~Goal(){};
+
+		//Operator
+		
+		void CallbackreadGoal(const geometry_msgs::PoseStamped Pos_goal);
+
+		//Getter
+		vector<float> Get_Goal_Position();
+		vector<float> Get_Goal_Orientation();
+		int Get_id();
+		int Get_type();
+		//Setter
+		void set_Id_(int id);
+		
+		Target Create_target_goal(int id);
+		
+};
+
+
+#endif //MAP_TARGET_H

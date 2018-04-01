@@ -1,0 +1,43 @@
+/***********************************************************************/
+/*                         Localisation.cpp                            */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                         */
+/* -LAST_MODIFICATION: 03/2018                                         */
+/***********************************************************************/
+
+
+#include "Location.hpp"
+
+
+// Constructor
+Location::Location(ros::NodeHandle nh,vector <target> list_Markers) 
+{
+  ar_subscriber_ = nh.subscribe("/vo", 1, &Recherche::arCallback, this);
+  odom_publisher_ = nh.advertise<nav_msgs::Odometry>("/odom", 1);
+  list_Markers_ = list_Markers;
+  pose_.resize(3);
+  orien_.resize(2);
+  msg_ok =false;
+}
+
+// Callback of the ar_pose_marker topic. Sets the position of the amer
+void vo_Callback(nav_msgs::Odometry msg);
+{
+  if (!msg_ok) {
+    odom_msg_ = msg;
+    msg_ok =true;
+  }
+}
+
+void Localisation::relocation()
+{
+  while(msg_ok == false && ros::ok())
+  {
+    ros::spinOnce();
+    ros::Duration(0.05).sleep();
+  }
+  odom_publisher_.publish(odom_msg_);
+  msg_ok == false;
+}
+

@@ -1,0 +1,67 @@
+/***********************************************************************/
+/*                             Bumper.cpp                              */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  BEAUHAIRE Pierre                                          */
+/* -LAST_MODIFICATION: 03/2018                                         */
+/***********************************************************************/
+
+#include "Bumper.hpp"
+
+// Constructor
+Bumper::Bumper(ros::NodeHandle nh) {
+  this->bump_subscriber_ = nh.subscribe("mobile_base/events/bumper", 1, &Bumper::bumpCallback, this);
+  this->vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 1);
+  this->sound_publisher_ = nh.advertise<kobuki_msgs::Sound>("/mobile_base/commands/sound", 1);
+  this->bump_pub_ = nh.advertise<std_msgs::Bool>("/chat_bumper", 1);
+
+  this->twist_message_.linear.x = 0.0;
+  this->twist_message_.linear.y = 0.0;
+  this->twist_message_.linear.z = 0.0;
+  this->twist_message_.angular.x = 0.0;
+  this->twist_message_.angular.y = 0.0;
+  this->twist_message_.angular.z = 0.0;
+  this->sound_message_.value = 0.0;
+  this->bump_state_message_.data = false;
+}
+
+// Callback of the bumper topic
+void Bumper::bumpCallback(const kobuki_msgs::BumperEvent &message) {
+  if (message.state == 1) {
+    this->bump_state_message_.data = true;
+    ROS_INFO("!!!! TURTLE: touched flowed !!!! ");
+    exit(0);
+  }
+  this->bump_pub_.publish(this->bump_state_message_);
+}
+
+// Stops the TurtleBot
+void Bumper::stop() {
+  this->twist_message_.linear.x = 0.0;
+  this->twist_message_.linear.y = 0.0;
+  this->twist_message_.linear.z = 0.0;
+  this->twist_message_.angular.x = 0.0;
+  this->twist_message_.angular.y = 0.0;
+  this->twist_message_.angular.z = 0.0;
+  this->vel_publisher_.publish(this->twist_message_);
+}
+
+// Makes a sound
+void Bumper::makeSound() {
+    this->sound_message_.value = 1.0;
+    this->sound_publisher_.publish(this->sound_message_);
+}
+
+
+/*
+// main
+int main(int argc, char **argv)
+{
+	ros::init(argc,argv,"Bumper");
+	ros::NodeHandle nh;
+	Bumper bumper(nh);
+  while (ros::ok()) {
+    ros::spinOnce();
+  }
+}*/
+

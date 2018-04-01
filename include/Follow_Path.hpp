@@ -1,0 +1,100 @@
+/***********************************************************************/
+/*                          Follow_Path.hpp                            */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                         */
+/* -LAST_MODIFICATION: 12/2017                                         */
+/***********************************************************************/
+#ifndef FOLLOW_PATH_H
+#define FOLLOW_PATH_H
+
+# include "ros/ros.h"
+# include "Map_Gui.hpp"
+# include <tf/tf.h>
+# include <angles/angles.h>
+# include <fstream>
+# include <math.h>
+# include <nav_msgs/Odometry.h>
+# include <geometry_msgs/Twist.h>
+# include <cv_bridge/cv_bridge.h>
+# include <image_transport/image_transport.h>
+
+#define CAM_TO_FRONT 0.25           // m      // Distance between camera and the front of the robot
+#define CAM_TO_CENTER 0.075         // m      // Distance between camera and the center of the robot
+#define SECURITY_DISTANCE 1.0       // m      // Minimal distance of security
+#define LEFT_WINDOW_OBSTACLE 20     // pix    // The pixel to the left from wich we enter in the window of obstacle on the image (at 1 meter)
+#define RIGHT_WINDOW_OBSTACLE 550   // pix    // The pixel to the right from wich we enter in the window of obstacle on the image (at 1 meter)
+#define BOTTOM_WINDOW_OBSTACLE 200  // pix    // The pixel to the bottom from wich we enter in the window of obstacle on the image (at 1 meter)
+#define UP_WINDOW_OBSTACLE 355      // pix    // The pixel to the up from wich we enter in the window of obstacle on the image (at 1 meter)
+#define FOCALE 580                  // mm     // Focal of the kinect
+
+using namespace std;
+using namespace cv;
+
+class Follow_Path
+{
+	private:
+		ros::Subscriber sub_Odom_;				//subscriber  /Odom
+		//ros::Subscriber sub_Stop_;			//subscriber  /Stopping
+		ros::Publisher pub_Velocity_;			//publisher   /mobile_base/command/velocity
+		image_transport::Subscriber image_sub_;
+		ros::NodeHandle nh_;				
+		std::vector<float> Robot_pose_;			//(x,y,z) in m in world
+		std::vector<float> Robot_orientation_;	//(x,y,z,w) in rad in world
+		std::vector<float> Robot_variance_;	//(vx,vy,vz) in m in world
+		//std::vector<int> map_data_;			//(pixel)
+		Map_Gui map_gui_;
+		vector<vector<float> > pointCloud;
+        float gamma;
+        float gamma90;
+        bool is_Obstacle;
+
+    
+
+
+	public:
+
+		// Constructor
+		Follow_Path(ros::NodeHandle nh);
+		Follow_Path(){};
+
+		//Destructor
+		~Follow_Path(){};
+
+		// CallBACK
+		void CallBack_Odom(const nav_msgs::Odometry::ConstPtr& msg);
+		void Callback_obstacle(const sensor_msgs::ImageConstPtr& msg);
+		//void CallBack_Stop(const geometry_msgs::Twist::ConstPtr& msg);
+
+		//Publisher Operator
+		void send_MSG_Velocity (float linear, float angular);
+
+		// Tool operator
+		vector<float> vector_AB (vector<float> a, vector<float> b);
+		vector<float> vector_vision();
+		float distance (vector<float> p1, vector<float> p2);
+		vector<float> normalized_2D (vector<float> vec);
+		float dot_2D (vector<float> p1, vector<float> p2);
+		float determinant_2D (vector<float> vec1, vector<float> vec2);
+		float calculate_angle (vector<float> u, vector<float> v);
+		
+
+    // Operators
+    
+
+
+		// Operator
+		bool goToPoint(vector<float> goal);
+        bool correction_Angles(vector<float> goal);
+        bool correction_Dist(vector<float> goal);
+        void turn_Over();
+		
+		// Getter
+        vector<vector<float> > getPointCloud();
+		// Setter
+
+		// DEBUG MOD
+		
+};
+
+#endif //FOLLOW_PATH_H

@@ -1,0 +1,46 @@
+<launch>
+  
+  
+  <!-- RESET ODOMETRY -->
+  <node pkg="rostopic" type="rostopic" name="reset_odom" args="pub /mobile_base/commands/reset_odometry std_msgs/Empty"/>
+  
+    
+  <!-- TF BROADCASTER -->
+  <node pkg="tf" type="static_transform_publisher" name="map_tf_publisher" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 map odom 100" />
+  
+
+
+
+  
+  
+  <!-- MAP SERVER -->
+  <!-- Map of the environment -->
+  <arg name="map_file" default="$(find turtlebot_visual_navigation)/map/map_aip.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+  
+  
+  
+  <!-- Markers positions on the map -->
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_0" args="-4.309 -1.589 0.31 0.0 0.0 0.0 1.0 map marker_0 100" />
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_1" args="-4.157 2.135 0.31 0.0 0.0 0.0 1.0 map marker_1 100" />
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_2" args="0.264 -1.430 0.31 0.0 0.0 0.709 0.705 map marker_2 100" />
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_3" args="0.309 1.685 0.31 0.0 0.0 -0.705 0.709 map marker_3 100" />
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_4" args="4.536 -1.599 0.31 0.0 0.0 1.0 0.0 map marker_4 100" />
+<node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_5" args="4.700 0.244 0.31 0.0 0.0 1.0 0.0 map marker_5 100" />
+  <node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_6" args="4.533 1.741 0.31 0.0 0.0 1.0 0.0 map marker_6 100" />
+<node pkg="tf" type="static_transform_publisher" name="marker_tf_publisher_7" args="8.788 -0.587 0.31 0.0 0.0 1.0 0.0 map marker_7 100" />
+
+
+  <!-- RVIZ CONFIGURATION -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_visual_navigation)/config/localisation.rviz"/> 
+  
+  
+   <!-- Decommenter si Localisation active --> 
+   <!--<node pkg="turtlebot_visual_navigation" name="node_vo_broadcast" type="Vo_broadcast" />
+   <node pkg="turtlebot_visual_navigation" name="node_odom_Combined_broadcast" type="Location" />
+   <node pkg="turtlebot_visual_navigation" name="node_new_odom" type="NewOdom" />--> 
+   
+
+
+
+</launch>

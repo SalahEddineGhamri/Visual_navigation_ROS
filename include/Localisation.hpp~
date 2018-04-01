@@ -1,0 +1,49 @@
+/***********************************************************************/
+/*                         Localisation.hpp                            */
+/***********************************************************************/
+/* -VERSION: ROS_Ubuntu 14.04                                          */
+/* -AUTHOR:  GUILLAUME Sylvain                                         */
+/* -LAST_MODIFICATION: 03/2018                                         */
+/***********************************************************************/
+
+# ifndef LOCALISATION_H
+# define LOCALISATION_H
+
+# include <ros/ros.h>
+# include <nav_msgs/Odometry.h>
+# include <kobuki_msgs/Sound.h>
+# include <tf/tf.h>
+# include <math.h>
+# include <angles/angles.h>
+
+
+
+class Localisation
+{
+	private:
+    ros::Subscriber vo_subscriber_;            // Publisher to /vo
+    ros::Publisher  odom_publisher_;            // Publisher to /vo
+    nav_msgs::Odometry odom_msg_;             // The message to save odometry informations
+
+
+   
+
+	public:
+
+	// Constructors
+    Localisation(ros::NodeHandle nh);
+    Localisation(){};
+
+	// Destructor
+	~Localisation(){};
+
+    // Setters
+    void vo_Callback(nav_msgs::Odometry msg);
+    
+    // Getters
+
+    // Operators
+    void relocalisation();
+};
+
+#endif //LOCALISATION_H
